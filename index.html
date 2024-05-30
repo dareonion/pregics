@@ -1,1 +1,76 @@
-Hello world!
+<!-- download attribute forces the browser to download instead of navigating -->
+<label for="start">Due date:</label>
+<input type="date" id="duedate" name="due_date" />
+
+<a download="hello.txt" href='#' id="link">Download</a>
+
+
+  
+<script src="
+https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js
+"></script>
+<script>
+
+  function to_timestring(date) {
+    return `${date.getUTCFullYear()}${date.getUTCMonth()}${date.getUTCDay()}T${date.getUTCHours()}${date.getUTCMinutes()}${date.getUTCSeconds()}Z`;
+  }
+  
+  function create_ics_file(yyyy, mm, dd) {
+    var arr = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:pregics"];
+    console.log(yyyy, mm, dd);
+    var curr_timestring = to_timestring(new Date(Date.now()));
+    var dueDate = luxon.DateTime.utc(yyyy, mm, dd);
+    var day0 = dueDate.minus({days:280});
+    for (let i=0; i<300; i++) {
+      var eventdate = day0.plus({days: i}).toFormat('yyyyMMdd');
+      var weeks = Math.floor(i/7);
+      var day_remainder = i%7;
+      var title = "";
+      var title_arr = [];
+      if (weeks == 1) {
+        title_arr.push(`1 week`);
+      } else if (weeks > 1) {
+        title_arr.push(`${weeks} weeks`);
+      }
+      if (day_remainder == 1) {
+        title_arr.push(`1 day`);
+      } else if (day_remainder > 1) {
+        title_arr.push(`${day_remainder} days`);
+      }
+
+      if (i == 0) {
+        title = "0 days";
+      } else {
+        title = title_arr.join(', ');
+      }
+      title += ` (${i-280})`;
+      var event_arr = [
+        "BEGIN:VEVENT",
+        `DTSTAMP:${curr_timestring}`,
+        `DTSTART;VALUE=DATE:${eventdate}`,
+        `SUMMARY:${title}`,
+        "END:VEVENT"
+      ];
+      arr = arr.concat(event_arr);
+    }
+    arr.push("END:VCALENDAR");
+    return arr.join('\n');
+  }
+
+  const due_date_input = document.querySelector("#duedate");
+  due_date_input.addEventListener("change", (event) => {
+    console.log(event.target.value);
+    var Y = parseInt(event.target.value.substring(0, 4));
+    var M = parseInt(event.target.value.substring(5, 7));
+    var D = parseInt(event.target.value.substring(8, 10));
+    var ics_file = create_ics_file(Y, M, D);
+    // https://javascript.info/blob
+    let blob = new Blob([ics_file], {type: 'text/plain'});
+    link.download = "pregnancy_tracker.ics";
+    link.href = URL.createObjectURL(blob);
+  });
+</script>
+
